@@ -1,0 +1,76 @@
+MAIN                lui s0, %hi(0xFFFF0F00)
+                        addi s0,s0,%lo(0xFFFF0F00) 
+
+                        addi a0,x0,0x0D 
+                        jal ra, PRETVORI 
+                        
+                        addi a0, x0, 0x500 
+                        lw a0, 0(a0)
+
+                        addi a2, x0, 0x100
+                        addi a3, x0, 0x200
+
+                        addi a4, x0, 0x300
+                        addi a5, x0, 0x400
+
+LOOP               beq a0, x0, END
+
+TST1                lw a1, 0(a2) 
+                        sub a1, a0, a1 
+                        blt  a1, x0, TST2 
+
+WR1                  lw a0, 0(a3)
+                         jal ra, PRETVORI
+                         add a0, x0, a1 
+                         jal x0, TST1
+
+                        
+TST2                lw a1, 0(a4) 
+                        sub a1, a0, a1
+                        blt  a1, x0, SKIP
+
+                        
+                        beq a0, x0, END
+                        
+
+WR2                  lw a0, 0(a5)
+                         jal ra, PRETVORI
+                         lw a0, 4(a5)
+                         jal ra, PRETVORI
+                         add a0, x0, a1
+                         jal x0, TST2
+
+SKIP                  addi a2, a2, 4
+                         addi a3, a3, 4
+                         addi a4, a4, 4
+                         addi a5, a5, 8
+                         jal x0, LOOP
+
+END                  addi a0,x0,0x0A
+                        jal ra, PRETVORI 
+                        halt
+
+
+PRETVORI        andi a0,a0,0x7F
+                        sb a0, 4(s0)
+                        ori a0,a0,0x80
+                        sb a0, 4(s0)
+                        andi a0,a0,0x7F
+                        sb a0, 4(s0)
+                        jalr x0, 0(ra)
+
+
+
+
+                        org 0x100
+                        dw 100, 50, 10, 5, 1
+                        org 0x200
+                        dw 0x43, 0x4C, 0x58, 0x56, 0x49 
+
+                        org 0x300
+                        dw 90, 40, 9, 4
+                        org 0x400
+                        dw 0x58, 0x43,  0x58, 0x4C, 0x49, 0x58, 0x49, 0x56, 0x0 
+
+                        org 0x500
+                        
