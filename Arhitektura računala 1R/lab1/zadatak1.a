@@ -1,0 +1,88 @@
+MAIN    MOV SP, #0x10000
+        
+        LDR R4, ADRES1
+        LDR R5, ADRES2
+        LDR R6, EXIT
+         
+LOOP    LDR R0, [R4], #4
+        CMP R0, R6
+        BEQ END
+
+        LDR R1, [R4], #4 ; R1 = "OPERAND 1"
+        LDR R2, [R4], #4 ; R2 = "OPERAND 1"
+        ; Za sve operacije moZete pretpostaviti da ce dati ispravan rezultat unutar 32 bita.
+
+        CMP R0, #0 ; ZBRAJANJE
+        ADDEQ R3, R1, R2
+
+        CMP R0, #1 ; ODUZIMANJE
+        SUBEQ R3, R1, R2
+
+        CMP R0, #2 ; MNOZENJE
+        MULEQ R3, R1, R2
+
+        CMP R0, #3 ; DIJELI
+        ;SUBEQ SP, SP, #4 ; SPREMIT MISTO ZA REZULTAT
+        STMEQFD SP!, {R1, R2}
+        BLEQ DIJELI ; ZASTAVICE SE POREMETE
+        CMP R0, #3
+        LDMEQFD SP!, {R3}
+        ADDEQ SP, SP, #8 ; POBRISAT S STOGA
+
+STORE   STR R3, [R5], #4
+        B LOOP
+
+
+END     MVN R3, #0
+        STR R3, [R5] ; Rezultantni blok potrebno je zakljuciti podatkom FFFF FFFF
+        SWI 0X123456
+
+
+        
+DIJELI  SUB SP, SP, #4 ; SPREMIT MISTO ZA REZULTAT
+        STMFD SP!, {R0, R1, R2, R3} ; spremanje konteksta i dohvat parametara
+
+        LDR R1, [SP, #20]  ; R1 je parametar A (ujedno i ostatak)
+        LDR R2, [SP, #24] ; R2 je parametar B
+        MOV R0, #0 ; Rez = 0
+        MOV R3, #0 ; R3 TELLS ME THE SIGN
+        ;PROVJERITI + I -
+        
+        CMP R1, #0 ; PROVJERIT PRVOG JELI NEGATIVAN
+        RSBMI R1, R1, #0 ; KOMPLEMENTIRANJE R1 AKO JE NEGATIVAN
+        ADDMI R3, R3, #1 ; BROJAC "MINUSA"
+
+
+        CMP R2, #0 ; PROVJERIT DRUGOGA JELI 0 ILI JELI NGATIVAN
+
+        MOVEQ R0, #0
+        BEQ JUMP
+        RSBMI R2, R2, #0 ; KOMPLEMENTIRANJE R2 AKO JE R2 NEGATIVAN
+        ADDMI R3, R3, #1 ; BROJAC "MINUSA"
+
+
+LOOP2   CMP R1, R2 ; while( A >= B )
+        BLO KRAJ
+        SUB R1, R1, R2 ; A = A - B
+        ADD R0, R0, #1 ; Rez = Rez + 1
+        B LOOP2
+
+
+KRAJ    CMP R3, #1 ; NEPARAN BROJ MINUSA?
+        RSBEQ R0, R0, #0
+JUMP    STR R0, [SP, #16]  ; ZATO STA NEZELIM KOMPLEMENTIRAT NULU
+        LDMFD SP!, {R0, R1, R2, R3} ; obnova konteksta s povratkom
+        MOV PC, LR
+
+
+
+EXIT    DW 0X80808080
+ADRES1  DW 0X500
+ADRES2  DW 0X1000
+
+        ;ORG 0X500
+        ;DW 0X00000003, 0XFFFFFEFF, 0X00000010, 0X00000001, 0X000001F4, 0XFFFFFD44, 0X00000002, 0XFFFFFFFE, 0X0000000A, 0X00000003, 0XFFFFF000, 0XFFFFFFC0, 0X00000003, 0X12345123, 0x0 ,0X80808080
+
+  
+        ;ORG 0X1000
+        ;DW 0, 0, 0, 0, 0, 0, 0
