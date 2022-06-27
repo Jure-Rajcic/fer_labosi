@@ -1,0 +1,33 @@
+Dretve i procesi
+Zadatak: Sinkronizacija ulazne, radne i izlazne dretve radnim čekanjem
+Napisati program koji stvara ukupno tri dretve u dva procesa (jedan proces ima dvije, a drugi jednu dretvu). Prva dretva je ulazna dretva i ona svakih jednu do pet sekundi generira nasumičan broj između 1 i 100 koji upisuje u zajedničku varijablu koju dijeli s radnom dretvom. Radna dretva čita taj broj, povećava ga za jedan i rezultat upisuje u drugu zajedničku varijablu s izlaznom dretvom. Izlazna dretva pročita taj broj i zapisuje ga u datoteku. Broj nasumičnih brojeva koje generira ulazna dretva zadaje se kao argument prilikom poziva glavnog programa. Sinkronizaciju obaviti radnim čekanjem na način da radna dretva čeka kada je upisana vrijednost 0 u zajedničkoj varijabli za ulaznu i radnu dretvu, ulazna dretva radno čeka kada je taj broj različit od 0. Na jednak način sinkronizirati radnu i izlaznu dretvu drugom zajedničkom varijablom.
+
+a) Studenti čija je zadnja znamenka JMBAG-a parna trebaju napisati program u kojem jedan od dva procesa ima dvije dretve: ulaznu i radnu, a drugi proces samo izlaznu dretvu.
+b) Studenti čija je zadnja znamenka JMBAG-a neparna trebaju napisati program u kojem jedan od dva procesa ima jednu dretvu i to ulaznu, a drugi proces dvije dretve: radnu i izlaznu.
+
+Uputa: Dretve istog procesa komuniciraju i sinkroniziraju se preko zajedničke globalne varijable unutar tog procesa, dok dretve različitih procesa komuniciraju preko zajedničke memorije koju treba stvoriti na početku izvođenja programa.
+Sve što nije zadano u tekstu zadatka riješiti na proizvoljan način.
+
+Primjer ispisa prilikom pokretanja programa:
+$ ./a.out 2
+Pokrenuta RADNA DRETVA
+Pokrenut IZLAZNI PROCES
+Pokrenuta ULAZNA DRETVA
+
+ULAZNA DRETVA: broj 57
+RADNA DRETVA: pročitan broj 57 i povećan na 58
+IZLAZNI PROCES: broj upisan u datoteku 58
+
+ULAZNA DRETVA: broj 80
+RADNA DRETVA: pročitan broj 80 i povećan na 81
+IZLAZNI PROCES: broj upisan u datoteku 81
+
+Završila RADNA DRETVA
+Završila ULAZNA DRETVA
+Završio IZLAZNI PROCES
+
+Ispis izlazne datoteke:
+
+$ cat ispis.txt
+58
+81
