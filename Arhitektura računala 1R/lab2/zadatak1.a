@@ -1,0 +1,64 @@
+                B MAIN
+
+                ORG 0X18 ; 
+                B PROG
+
+MAIN        MSR CPSR, #0B11010010
+                MOV SP, #0X10000
+
+                MRS R0, CPSR
+                BIC R0, R0, #0B10000000
+                MSR CPSR, R0; OMOGUCIT PREKID IRQ
+
+                LDR R0, RTC
+                MOV R1,  #5 ; 1Hz * 5 s = 5
+                STR R1, [R0, #4] ; MR = 5
+                MOV R1, #0
+                STR R1, [R0, #12]; POSTAVIT "BROJILO"
+                MOV R1, #1
+                STR R1, [R0, #16]; OMOGUCIT PREKID
+                
+                LDR R0, GPIO2 ; INICJALIZACIJA GPIO2
+                MOV R1, #0B11100000
+                STR R1, [R0, #8]
+                MOV R1, #0B00100000 ; Inicijalno stanje na semaforu nakon pokretanja programa jest zabrana prolaska za automobile, ovo san shvatia kao da startamo s crvenim svjetlom koje traje 5 sekundi? pa da se onda pribaci na crveno i zuto
+                STR R1, [R0]
+
+
+LOOP    B LOOP ; OSTVARIVANJE CEKANJA
+
+                LDR R1, FLAG ; program se vraca ovdje iz prekidnog podprograma (zbog subs #0)          R1 = 1, 2 ,3 4
+CRV          CMP R1, #1
+                MOVEQ R1, #0B00100000 ; JEDNOM KAD SE U R1 UPISE OVA VRIJEDNOST, NIKOJI DRUGI SE NECE ZADOVOLIT, PA SAMO PROPADAMO
+
+CRVZUT    CMP R1, #2
+                MOVEQ R1, #0B01100000
+
+ZEL           CMP R1, #3
+                MOVEQ R1, #0B10000000
+
+ZUT          CMP R1, #4 ; ZADNJI OSVJEZAVA CPSR TAKO DA AKO JE  FLAG == 4, ONDA RESETIRAT FLAG 
+                MOVEQ R1, #0B01000000
+                STRB R1, [R0]
+
+                MOVEQ R1, #0 ; AKO SE ZADOVOLJIA ZADNJI UVJET RESETIRAT FLAG
+                STREQ R1, FLAG
+                B LOOP
+
+
+PROG       STMFD SP!, {R0, R1}
+                LDR R0, RTC
+                MOV R1, #0
+                STR R1, [R0, #12] ; POSTAVIT BROJILO NA 0
+                STR R1, [R0, #8] ; POSTAVIT STATUS/EIO NA 0
+                
+                LDR R1, FLAG
+                ADD R1, R1, #1
+                STR R1, FLAG
+
+                LDMFD SP!, {R0, R1}
+                SUBS PC, LR, #0 ; namjerno 0 da se vratim u liniju ispod LABELE LOOP !!!
+                
+GPIO2      DW 0XFFFF0B00
+RTC          DW 0XFFFF0E00
+FLAG        DW 1 ; IMPLEMENTACIJA KAKO SAZNATI KOJE SVIJETLO SVIJETLI, JER JE PRVOP STANJE CRVENO
