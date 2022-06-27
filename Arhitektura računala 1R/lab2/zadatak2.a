@@ -1,0 +1,92 @@
+                B MAIN
+
+                ORG 0X18 ; IRQ
+                B IRQ
+
+                ORG 0X1C; FIQ
+                B FIQ
+
+MAIN        MOV R5, #5; R5 JE BROJAC
+                LDR R2, LOCK; R2 JE PODATAK S KOJIM ZAKLJUCAJEM BLOK
+                
+                MSR CPSR, #0b11010010 ; prelazak u način rada IRQ
+                MOV R13, #0x5000 ; inicijalizacija R13_irq
+
+                MSR CPSR, #0b11010001 ; prelazak u način rada FIQ
+                MOV R13, #0x10000 ; inicijalizacija R13_fiq
+
+
+                MRS R0, CPSR
+                BIC R0, R0, #0xC0 ; OMOGUCIT F i I PREKIDE
+                MSR CPSR, R0
+
+INIT         LDR R1, RTC ; INICJALIZACIJA RTC-a
+                MOV R0, #3
+                STR R0, [R1, #0x04] ; MR = 3
+
+                LDR R1, DMAC ; INICJALIZACIJA DMAC-a
+                LDR R0, SRC
+                STR R0, [R1,#0x10] ; Source address
+                LDR R0, DEST
+                STR R0, [R1,#0x14] ; Destination address
+                MOV R0, #0x000A ; KRADA CIKLUSA, BS = 1, TS = 10
+                STR R0, [R1,#0x18]                 
+                MOV R0, #0b10101100 ; TW = 32
+                STR R0, [R1,#0x1C] ; Configuration
+                MOV R0, #1
+                STR R0, [R1,#0] ; OMOGUCI DMAC
+
+LOOP        CMP R5, #0 ; SLUSAT OBA PREKIDA I NEIZMJERNO PALIT KO IH MOZE POSTAVIT, DMAC -> IRQ, RTC -> FIQ
+                 BNE LOOP ; DOK DMAC NE AKTIVIRA IRQ ILI DOK RTC NE AKTIVIRA FIQ (CEKANJE 3 SEKUNDE JER JE MR == 3)
+KRAJ          SWI 123456
+
+
+IRQ          STMFD SP!, {R0, R1}
+                LDR R1, DMAC
+                STR R1, [R1, #0x4] ; prihvata prekida DMAC-u + brisanje statusa
+                MOV R0, #0
+                STR R0, [R1,#0] ; ONEMOGUCI DMAC
+
+                LDR R0, [R1, #0X14]; OVA ADRESA JE ADRESA ODMAH IZA BLOKA
+                STR R2, [R0] ; ZAKLJUCAJ BLOK 
+                
+                LDR R0, SRC ; RESETIRAJ ADRESE NAKON STO SMO ZAKLJUCALI BLOK
+                STR R0, [R1, #0X10]
+                LDR R0, DEST
+                STR R0, [R1, #0X14]
+
+                LDR R1, RTC 
+                MOV R0, #0
+                STR R0, [R1, #0X8] ; RESETIRAT STATE/EIO
+                STR R0, [R1, #0x0C] ; RESETIRAT LR I DR
+                MOV R0, #1
+                STR R0, [R1, #0x10] ; CR = 1 (OMOGUCIT RTC-U FIQ PREKD)
+
+                SUB R5, R5, #1; SMANJIVANJE BROJACA
+                LDMFD SP!, {R0, R1}
+                SUBS PC, LR, #4 
+
+FIQ           STMFD SP!, {R0, R1}
+                LDR R1, RTC
+                MOV R0, #0 
+                STR R0, [R1,#0X10] ; CR = 0 (ONEMOGUCIT RTC-u FIQ PREKID)
+
+                LDR R1, DMAC
+                MOV R0, #1
+                STR R0, [R1,#0] ; (OMOGUCIT DMAC-u IRQ PREKIDE)
+                LDMFD SP!, {R0, R1}
+                SUBS PC, LR, #4 
+
+
+DMAC       DW 0X00FF0000; IRQ
+RTC          DW 0XFFFF0E00; FIQ
+SRC          DW 0X500
+DEST        DW 0X700
+LOCK        DW 0X80808080
+
+               ; ORG 0X500
+                ;DW 0X00000001, 0X00000002, 0X00000003, 0X00000004, 0X00000005, 0X00000006, 0X00000007, 0X00000008, 0X00000009, 0X0000000A
+                ;DW 0XAAAAAA1, 0XBBBBBBB2, 0XCCCCCCC3, 0XDDDDDDD4, 0XEEEEEEE5, 0XFFFFFFF6, 0X12341234, 0X12345678, 0X89AB89AB, 0X89ABCDEF
+
+                ;ORG 0X700
+                ;DW 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
