@@ -1,0 +1,13 @@
+MS & Linux programeri
+Zadatak
+U istoj zgradi rade Microsoftovi programeri i Linux programeri. Zgrada ima jedan restoran kojega programeri moraju dijeliti. U istom trenutku u restoranu smije biti samo jedna vrsta programera (ili je restoran prazan). Sinkronizirati programere monitorom (ispravna sinkronizacija podrazumijeva i sprječavanje izgladnjivanja).
+
+Svaki programer ima sljedeći oblik:
+
+Programer(vrsta){
+     udji(vrsta);
+     obavi;
+     izadji(vrsta);
+}
+
+ 
